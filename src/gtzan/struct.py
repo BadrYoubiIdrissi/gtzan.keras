@@ -50,13 +50,13 @@ def read_data(src_dir, genres, song_samples,
     for x, _ in genres.items():
         folder = src_dir + x
         
-        for root, subdirs, files in os.walk(folder):
+        for _, _, files in os.walk(folder):
             for file in files:
                 # Read the audio file
                 file_name = folder + "/" + file
-                signal, sr = librosa.load(file_name)
+                signal, _ = librosa.load(file_name)
                 signal = signal[:song_samples]
-                
+
                 # Debug process
                 if debug:
                     print("Reading file: {}".format(file_name))
@@ -72,3 +72,10 @@ def read_data(src_dir, genres, song_samples,
                 arr_specs.extend(specs)
                 
     return np.array(arr_specs), to_categorical(np.array(arr_genres))
+
+def read_test_data(src_dir,song_samples = 660000,n_fft = 1024, hop_length = 512):
+    signal, _ = librosa.load(src_dir)
+    signal = signal[:song_samples]
+    signals, _ = splitsongs(signal, 0)
+    specs = to_melspectrogram(signals, n_fft, hop_length)
+    return np.array(specs)

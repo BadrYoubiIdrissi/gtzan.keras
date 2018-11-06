@@ -1,5 +1,5 @@
 import keras
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Dense
 from keras.layers import Activation
 from keras.layers import Conv2D
