@@ -3,6 +3,7 @@ import librosa
 import numpy as np
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
+import scipy
 
 """
 @description: Method to split a song into multiple songs using overlapping windows
@@ -25,23 +26,27 @@ def splitsongs(X, y, window = 0.1, overlap = 0.5):
 
     return np.array(temp_X), np.array(temp_y)
 
-"""
-@description: Method to convert a list of songs to a np array of melspectrograms
-"""
-def to_melspectrogram(songs, n_fft = 1024, hop_length = 512):
-    # Transformation function
-    melspec = lambda x: librosa.feature.melspectrogram(x, n_fft = n_fft,
-        hop_length = hop_length)[:,:,np.newaxis]
+def stft(x, fs=22050, nperseg=1024):
+    _, _, Zxx = scipy.signal.stft(x, fs=fs, nperseg=nperseg)
+    return np.stack([20*np.log(abs(Zxx)),np.angle(Zxx)], axis=-1)
 
-    # map transformation of input songs to melspectrogram using log-scale
-    tsongs = map(melspec, songs)
+def istft(x, fs=22050, nperseg=1024):
+    pass
+"""
+@description: Method to convert a list of songs to a np array of stft amplitude and phase
+"""
+def to_stft(songs, fs=22050, nperseg=1024):
+    # Transformation function
+    stftMap = lambda x: stft(x, fs=fs, nperseg=nperseg)
+
+    # map transformation of input songs to stft
+    tsongs = map(stftMap, songs)
     return np.array(list(tsongs))
 
 """
 @description: Read audio files from folder
 """
-def read_data(src_dir, genres, song_samples,  
-    n_fft = 1024, hop_length = 512, debug = True):
+def read_data(src_dir, genres, song_samples = 660000, nperseg = 1024, debug = True):
     # Empty array of dicts with the processed features from all files
     arr_specs = []
     arr_genres = []
@@ -54,7 +59,7 @@ def read_data(src_dir, genres, song_samples,
             for file in files:
                 # Read the audio file
                 file_name = folder + "/" + file
-                signal, _ = librosa.load(file_name)
+                signal, fs = librosa.load(file_name)
                 signal = signal[:song_samples]
 
                 # Debug process
@@ -65,7 +70,7 @@ def read_data(src_dir, genres, song_samples,
                 signals, y = splitsongs(signal, genres[x])
                 
                 # Convert to "spec" representation
-                specs = to_melspectrogram(signals, n_fft, hop_length)
+                specs = to_stft(signals, fs)
                 
                 # Save files
                 arr_genres.extend(y)
@@ -73,9 +78,9 @@ def read_data(src_dir, genres, song_samples,
                 
     return np.array(arr_specs), to_categorical(np.array(arr_genres))
 
-def read_test_data(src_dir,song_samples = 660000,n_fft = 1024, hop_length = 512):
+def read_test_data(src_dir,song_samples = 660000,nperseg = 1024):
     signal, _ = librosa.load(src_dir)
     signal = signal[:song_samples]
-    signals, _ = splitsongs(signal, 0)
-    specs = to_melspectrogram(signals, n_fft, hop_length)
+    signals, fs = splitsongs(signal, 0)
+    specs = to_stft(signals, fs, nperseg)
     return np.array(specs)
