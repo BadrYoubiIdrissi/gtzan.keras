@@ -12,7 +12,7 @@ from keras.applications.vgg16 import VGG16
 
 def build_model(input_shape, num_genres, freezed_layers = 5):
     input_tensor = Input(shape=input_shape)
-    vgg16 = VGG16(include_top=False, weights='imagenet',
+    vgg16 = VGG16(include_top=False, weights=None,
                   input_tensor=input_tensor)
 
     top = Sequential()

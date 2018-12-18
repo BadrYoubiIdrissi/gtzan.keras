@@ -28,13 +28,7 @@ from keras.models import load_model
 from gtzan import build_model, read_test_data, read_data
 from dataGeneration import generator
 
-# Constants
-song_samples = 660000
-genres = {'metal': 0, 'disco': 1, 'classical': 2, 'hiphop': 3, 'jazz': 4, 
-          'country': 5, 'pop': 6, 'blues': 7, 'reggae': 8, 'rock': 9}
-genresRev = ['metal', 'disco', 'classical', 'hiphop', 'jazz', 
-          'country', 'pop', 'blues', 'reggae', 'rock']
-num_genres = len(genres)
+from gtzan.constants import *
 
 def main(args):
     exec_mode = ['train', 'test']
@@ -58,27 +52,22 @@ def main(args):
             pass 
 
         # Read the files to memory and split into train test
-        # X, y = read_data(args.directory, genres, song_samples)
-        
-        # Load data
-        X = np.load("../data.npy")
-        y = np.load("../output.npy")
+        X, y, fs = read_data(args.directory, genres, song_samples)
 
         # Transform to a 3-channel image
-        # X_stack = np.squeeze(np.stack((X,) * 3, -1))
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify = y)
 
         # Training step
-        input_shape = (128,129,3)
+        input_shape = (257,259,2)
         cnn = build_model(input_shape, num_genres)
         cnn.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
-        cnn.fit_generator(generator(X_train,y_train,100), steps_per_epoch=100, epochs=50, verbose=1)
+        cnn.fit_generator(generator(X_train,y_train,100, fs, nperseg=512), steps_per_epoch=100, epochs=50, verbose=1)
 
         # Evaluate
-        score = cnn.evaluate_generator(generator(X_test, y_test, 100), steps=100, verbose = 0)
+        score = cnn.evaluate_generator(generator(X_test, y_test, 100, fs, nperseg=512), steps=100, verbose = 0)
         print("val_loss = {:.3f} and val_acc = {:.3f}".format(score[0], score[1]))
 
         # Save the model
